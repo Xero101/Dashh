@@ -1,11 +1,8 @@
-# Executive Dashboard (Dash + Python)
+# Dashboard ติดตามแผนปฏิบัติงานประจำปี
 
-ตัวอย่างเว็บ Dashboard สำหรับผู้บริหาร ใช้ Plotly Dash และ Flask มี KPI cards, ตัวกรองวันที่, กราฟแนวโน้ม และบัญชีผู้ใช้ 2 บทบาท (admin / viewer) ข้อมูลเริ่มต้นอ่านจาก CSV และเลือกเปลี่ยนเป็นฐานข้อมูล SQL ได้
+เว็บ Dashboard สำหรับผู้บริหาร ติดตามความคืบหน้าของแต่ละหัวข้องาน แผนก ผู้ดำเนินการ กำหนดส่ง และหมายเหตุ มีตัวกรองปี/แผนก, KPI ภาพรวม, กราฟความคืบหน้าตามแผนก และตารางค้นหา/เรียงลำดับได้ ใช้ Dash + Plotly, รองรับ CSV หรือฐานข้อมูล SQL และล็อกอินสองบทบาท
 
-## เริ่มใช้งานบน Windows
-
-1. ติดตั้ง Python 3.10 ขึ้นไป
-2. เปิด PowerShell ในโฟลเดอร์นี้ แล้วรัน:
+## เริ่มบน Windows
 
 ```powershell
 py -m venv .venv
@@ -14,61 +11,51 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-3. แก้ `.env` ตั้ง `SECRET_KEY` และเปลี่ยนรหัสผ่านของ `admin` และ `executive` ให้เป็นรหัสผ่านของคุณเอง
-4. เริ่มเว็บ:
+แก้ `.env` เปลี่ยน `SECRET_KEY`, `ADMIN_PASSWORD`, `VIEWER_PASSWORD` จากนั้นรัน:
 
 ```powershell
 python app.py
 ```
 
-5. เปิด `http://127.0.0.1:8050/login`
+เปิด `http://127.0.0.1:8050/login` ผู้ดูแลระบบใช้ค่า username ใน `ADMIN_USERNAME`; ผู้บริหารใช้ `VIEWER_USERNAME` ค่าเริ่มต้นเป็น `admin` และ `executive` ตามลำดับ รหัสผ่านต้องเป็นค่าที่ตั้งเองใน `.env`
 
-ผู้ใช้จาก `.env` ที่กำหนดบทบาท `admin` หรือ `viewer` จะเข้าสู่ Dashboard ได้ ทั้งสองบทบาทดู KPI ได้ แต่เฉพาะ admin เท่านั้นที่เข้า `/admin` เพื่อดูหน้าตั้งค่าระบบได้; viewer จะได้รับการปฏิเสธการเข้าถึงหน้านั้น การเปลี่ยนบัญชีผู้ใช้และแหล่งข้อมูลทำผ่าน `.env` บนเซิร์ฟเวอร์ ไม่ได้ผ่านหน้าเว็บ
+## คอลัมน์ข้อมูล
 
-## รูปแบบข้อมูล CSV
+ทั้ง CSV และตาราง SQL ต้องมีคอลัมน์ดังนี้:
 
-ไฟล์ CSV ต้องมีคอลัมน์ `date,revenue,orders,customers,cost` ตัวอย่างอยู่ที่ `data/sample.csv` กำหนดไฟล์ด้วย `CSV_PATH` ใน `.env` ได้ วันที่ควรอยู่ในรูปแบบที่ pandas อ่านได้ เช่น `2026-06-30` จำนวนเงินเป็นตัวเลขหน่วยบาท
+| คอลัมน์ | ความหมาย | ตัวอย่าง |
+|---|---|---|
+| `plan_year` | ปีแผน | `2026` |
+| `task` | หัวข้องานตามแผน | `พัฒนาระบบบริการออนไลน์` |
+| `department` | แผนก/หน่วยงาน | `เทคโนโลยีสารสนเทศ` |
+| `owner` | ผู้ดำเนินการ/ผู้รับผิดชอบ | `กิตติพงษ์ ใจดี` |
+| `start_date` | วันเริ่มต้น | `2026-01-05` |
+| `due_date` | วันกำหนดเสร็จ | `2026-06-30` |
+| `progress` | ความคืบหน้าเป็นเปอร์เซ็นต์ 0–100 | `82` |
+| `status` | สถานะงาน | `กำลังดำเนินการ` |
+| `note` | หมายเหตุ/อุปสรรค | `อยู่ระหว่างทดสอบระบบ` |
 
-## เปลี่ยนไปอ่านจากฐานข้อมูล
+ตัวอย่างอยู่ใน `data/sample.csv` เปลี่ยนตำแหน่งด้วย `CSV_PATH` ใน `.env` สถานะที่แนะนำ: `ยังไม่เริ่ม`, `กำลังดำเนินการ`, `เสร็จแล้ว`, `ล่าช้า` ค่า KPI “เกินกำหนด” คำนวณจากกำหนดส่งที่ผ่านไปและความคืบหน้าต่ำกว่า 100%
 
-ตั้งค่าใน `.env`:
+## ใช้ฐานข้อมูล
 
 ```dotenv
 DATA_SOURCE=database
 DATABASE_URL=postgresql+psycopg://dashboard_user:password@db-host:5432/company
-DATABASE_TABLE=executive_metrics
+DATABASE_TABLE=annual_plan_tasks
 ```
 
-ตารางต้องมีคอลัมน์ `date,revenue,orders,customers,cost` และสิทธิ์ของบัญชีฐานข้อมูลควรเป็นแบบอ่านอย่างเดียว ตัวอย่าง URL ของ PostgreSQL ใช้ไดรเวอร์ `psycopg` ซึ่งติดตั้งจาก `requirements.txt` ไว้แล้ว รองรับ URL รูปแบบ SQLAlchemy สำหรับฐานข้อมูลอื่นเมื่อเพิ่มไดรเวอร์ที่เหมาะสม
+สิทธิ์บัญชีฐานข้อมูลควรเป็นแบบอ่านอย่างเดียว Dashboard โหลดข้อมูลใหม่เมื่อมีการเปลี่ยนตัวกรอง
 
-## ก่อนเปิดใช้จริงบนเซิร์ฟเวอร์
+## ล็อกอินและสิทธิ์
 
-- อย่าใช้ค่า secret หรือรหัสผ่านตัวอย่าง และเก็บ `.env` เป็นความลับ
-- ให้ reverse proxy เช่น Nginx หรือ Caddy จัดการ HTTPS และส่งทราฟฟิกเข้าแอป
-- ตั้งค่า secure session cookie ใน `app.py` หลังเปิด HTTPS โดยเพิ่ม `SESSION_COOKIE_SECURE=True` ใน `server.config.update`
-- ใช้ WSGI server สำหรับ production เช่น Gunicorn บน Linux (มี Dockerfile ให้); อย่าเปิด Flask development server สู่สาธารณะ
-- สำรองฐานข้อมูลและจำกัดการเชื่อมต่อฐานข้อมูล/เว็บตามเครือข่ายที่จำเป็น
-- ข้อมูลตัวอย่างเป็นข้อมูลสมมติ ควรตรวจสอบนิยาม KPI และสูตรกำไรกับทีมธุรกิจก่อนใช้รายงานจริง
-
-## โครงสร้าง
-
-```text
-executive-dash/
-  app.py
-  requirements.txt
-  .env.example
-  assets/style.css
-  data/sample.csv
-  Dockerfile
-```
+ตั้งผู้ใช้ใน `.env` แยกเป็น admin และ viewer ผู้ใช้ทั้งสองบทบาทดู Dashboard ได้ แต่เฉพาะ admin เข้า `/admin` ได้ ข้อมูลบัญชีถูกเก็บใน environment ไม่ได้เพิ่มรหัสผ่านลงฐานข้อมูล
 
 ## Docker
-
-คัดลอก `.env.example` เป็น `.env`, เปลี่ยน secret และรหัสผ่าน แล้วสร้าง/เริ่ม container:
 
 ```sh
 docker build -t executive-dash .
 docker run --env-file .env -p 8050:8050 executive-dash
 ```
 
-สำหรับ CSV ที่ต้องแก้จาก host ให้ mount ไฟล์หรือโฟลเดอร์ `data` เข้า container และตั้ง `CSV_PATH` ให้ตรงกับตำแหน่งที่ mount
+ก่อนเปิดใช้งานจริง ให้ใช้รหัสผ่านและ `SECRET_KEY` ที่เดายาก เปิด HTTPS ผ่าน reverse proxy และเปิด `SESSION_COOKIE_SECURE=True` ใน `server.config.update` ของ `app.py` หลังใช้งาน HTTPS แล้ว หากแก้ข้อมูล CSV ในเครื่อง host ให้ mount โฟลเดอร์ `data` เข้า container
